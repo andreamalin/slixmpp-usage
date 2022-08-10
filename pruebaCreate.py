@@ -1,8 +1,10 @@
 '''
 --> register
+--> remove
 '''
 
 
+import logging
 from getpass import getpass
 from argparse import ArgumentParser
 
@@ -25,6 +27,7 @@ class RegisterBot(slixmpp.ClientXMPP):
     """
 
     def __init__(self, jid, password):
+        # slixmpp.ClientXMPP.__init__(self, jid, password)
         slixmpp.ClientXMPP.__init__(self, jid, password)
 
         # The session_start event will be triggered when
@@ -33,15 +36,7 @@ class RegisterBot(slixmpp.ClientXMPP):
         # listen for this event so that we we can initialize
         # our roster.
         self.add_event_handler("session_start", self.start)
-
-        # The register event provides an Iq result stanza with
-        # a registration form from the server. This may include
-        # the basic registration fields, a data form, an
-        # out-of-band URL, or any combination. For more advanced
-        # cases, you will need to examine the fields provided
-        # and respond accordingly. Slixmpp provides plugins
-        # for data forms and OOB links that will make that easier.
-        # self.add_event_handler("register", self.register)
+        self.add_event_handler("register", self.register)
 
 
     async def start(self, event):
@@ -55,12 +50,11 @@ class RegisterBot(slixmpp.ClientXMPP):
                      event does not provide any additional
                      data.
         """
-        self.send_presence()
-        await self.get_roster()
-
-        await self.send_custom_iq()
+        # self.send_presence()
+        # await self.get_roster()
+        # wait self.send_custom_iq()
         # We're only concerned about registering, so nothing more to do here.
-        self.disconnect()
+        # self.disconnect()
 
     async def send_custom_iq(self):
         resp = self.Iq()
@@ -71,6 +65,15 @@ class RegisterBot(slixmpp.ClientXMPP):
         print("el resp es", resp)
 
         await resp.send()
+
+    async def register(self, iq):
+        print('REGUSTEEEEER', self.boundjid.user)
+        resp = self.Iq()
+        resp['type'] = 'set'
+        resp['register']['username'] = self.boundjid.user
+        resp['register']['password'] = self.password
+        await resp.send()
+        self.disconnect()
 
 if __name__ == '__main__':
     # Setup the command line arguments.
@@ -112,7 +115,7 @@ if __name__ == '__main__':
 
     # Some servers don't advertise support for inband registration, even
     # though they allow it. If this applies to your server, use:
-    # xmpp['xep_0077'].force_registration = True
+    xmpp['xep_0077'].force_registration = True
 
     # Connect to the XMPP server and start processing XMPP stanzas.
     xmpp.connect()
