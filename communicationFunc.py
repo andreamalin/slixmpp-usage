@@ -29,11 +29,15 @@ class Communication(slixmpp.ClientXMPP):
         if (sendMessage):
             self.add_event_handler("session_start", self.start)
             self.add_event_handler("message", self.message)
+            self.add_event_handler("groupchat_message", self.group_notification)
             self.add_event_handler("roster_update", self.chat_send)
+            self.add_event_handler("changed_status", self.get_presence_notification)
         elif (room != None):
             self.add_event_handler('session_start', self.start_muc)
+            self.add_event_handler("message", self.message_notification)
             self.add_event_handler("groupchat_message", self.muc_message)
             self.add_event_handler("roster_update", self.chat_send_muc)
+            self.add_event_handler("changed_status", self.get_presence_notification)
         elif (status != None):
             self.add_event_handler("session_start", self.start_presence)
             self.add_event_handler("changed_status", self.get_presence)
@@ -109,6 +113,21 @@ class Communication(slixmpp.ClientXMPP):
         if msg['type'] in ('chat', 'normal'):
             print(msg['from'],':', msg['body'])
 
+    async def message_notification(self, msg):
+        if msg['type'] in ('chat', 'normal'):
+            print('*' * 50)
+            print(' ' * 15 + 'NOTIFICACION:' + ' ' * 15)
+            print(msg['from'],':', msg['body'])
+            print('*' * 50)
+    
+    async def group_notification(self, msg):
+        if msg['type'] in ('chat', 'normal'):
+            print('*' * 50)
+            print(' ' * 15 + 'NOTIFICACION:' + ' ' * 15)
+            if msg['mucnick'] != self.nick :
+                print(msg['mucnick'],':', msg['body'])
+            print('*' * 50)
+    
     async def chat_send(self, msg):
         try:
             something = inputimeout(prompt='>>', timeout=10)
@@ -154,6 +173,18 @@ class Communication(slixmpp.ClientXMPP):
 
         await resp.send()
     
+    
+    async def get_presence_notification(self, resp):
+        try:
+            print('*' * 50)
+            print(' ' * 15 + 'NOTIFICACION:' + ' ' * 15)
+            status = resp['status']
+            if (status != ''):
+                print(resp['from'], " ha actualizado el status a: ", status)
+                self.disconnect()
+            print('*' * 50)
+        except:
+            return
     
     async def get_presence(self, resp):
         try:
