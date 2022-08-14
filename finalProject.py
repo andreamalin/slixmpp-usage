@@ -112,6 +112,13 @@ async def showMenu():
                 # Connect to the XMPP server and start processing XMPP stanzas.
                 start.connect()
                 start.process(forever=False)
+            elif (option == 6):
+                # batouzuz
+                status = input('Ingrese su status: ')
+                start = Communication(user, password, status=status)
+                # Connect to the XMPP server and start processing XMPP stanzas.
+                start.connect()
+                start.process(forever=False)
             elif (option == 7):
                 print('Cerrando sesion de ' + user + '...')
                 # Disconnect

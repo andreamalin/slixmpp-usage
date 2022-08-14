@@ -8,10 +8,11 @@ from slixmpp.xmlstream.handler import Callback
 from slixmpp.xmlstream.matcher import StanzaPath
 
 class Communication(slixmpp.ClientXMPP):
-    def __init__(self, jid, password, showUserList = False, addContact = None, sendMessage = False, contactToTalk = None, room = None):
+    def __init__(self, jid, password, showUserList = False, addContact = None, sendMessage = False, contactToTalk = None, room = None, status = None):
+        slixmpp.ClientXMPP.__init__(self, jid, password)
         self.contactToTalk = contactToTalk
         self.contactToAdd = addContact
-        slixmpp.ClientXMPP.__init__(self, jid, password)
+        self.status = status
         
         self.room = room
         self.nick = 'amaya'
@@ -33,6 +34,9 @@ class Communication(slixmpp.ClientXMPP):
             self.add_event_handler('session_start', self.start_muc)
             self.add_event_handler("groupchat_message", self.muc_message)
             self.add_event_handler("roster_update", self.chat_send_muc)
+        elif (status != None):
+            self.add_event_handler("session_start", self.start_presence)
+            self.add_event_handler("changed_status", self.get_presence)
         elif (showUserList):
             self.add_event_handler("session_start", self.getUserList)
         elif (addContact != None):
@@ -47,6 +51,11 @@ class Communication(slixmpp.ClientXMPP):
         self.send_presence()
         await self.get_roster()
         self.plugin['xep_0045'].join_muc(self.room, self.nick)
+
+    async def start_presence(self, event):
+        self.send_presence()
+        await self.update_presence()
+        await self.get_roster()
 
     async def addContact(self, event):
         self.send_presence()
@@ -137,3 +146,20 @@ class Communication(slixmpp.ClientXMPP):
         # if msg['mucnick'] != self.nick :
         #     print(msg['mucnick'],':', msg['body'])
         print(msg['mucnick'],':', msg['body'])
+    
+    
+    async def update_presence(self):
+        resp = self.Presence()
+        resp["status"] = self.status
+
+        await resp.send()
+    
+    
+    async def get_presence(self, resp):
+        try:
+            status = resp['status']
+            if (status != ''):
+                print("Se ha actualizado el status a: ", status)
+                self.disconnect()
+        except:
+            return
