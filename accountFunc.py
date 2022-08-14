@@ -1,8 +1,3 @@
-
-import logging
-from getpass import getpass
-from argparse import ArgumentParser
-
 import slixmpp
 from slixmpp.exceptions import IqError, IqTimeout
 
@@ -13,6 +8,8 @@ from slixmpp.xmlstream.matcher import StanzaPath
 class Account(slixmpp.ClientXMPP):
     def __init__(self, jid, password, remove=False, register=False):
         self.isNewAccount = register
+        self.isLoggedIn = True
+    
         slixmpp.ClientXMPP.__init__(self, jid, password)
 
         
@@ -42,6 +39,7 @@ class Account(slixmpp.ClientXMPP):
     def failedAuth(self, event):
         if not self.isNewAccount:
             print('Oops! Credenciales incorrectas')
+            self.isLoggedIn = False
             self.disconnect()
 
     async def register(self, iq):
