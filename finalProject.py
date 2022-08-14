@@ -7,6 +7,7 @@ import nest_asyncio
 nest_asyncio.apply()
 
 server = "@alumchat.fun"
+muc_server = "@conference.alumchat.fun"
 
 print('*' * 50)
 print(' ' * 17 + 'BIENVENIDO :)' + ' ' * 17)
@@ -100,6 +101,14 @@ async def showMenu():
                 contactToTalk = input('Usuario del contacto a mensajear: ')
                 contactToTalk += server
                 start = Communication(user, password, sendMessage=True, contactToTalk=contactToTalk)
+                # Connect to the XMPP server and start processing XMPP stanzas.
+                start.connect()
+                start.process(forever=False)
+            elif (option == 5):
+                # batouzuz
+                contactToTalk = input('Room a mensajear: ')
+                contactToTalk += muc_server
+                start = Communication(user, password, room=contactToTalk)
                 # Connect to the XMPP server and start processing XMPP stanzas.
                 start.connect()
                 start.process(forever=False)

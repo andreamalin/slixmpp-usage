@@ -8,11 +8,13 @@ from slixmpp.xmlstream.handler import Callback
 from slixmpp.xmlstream.matcher import StanzaPath
 
 class Communication(slixmpp.ClientXMPP):
-    def __init__(self, jid, password, showUserList = False, addContact = None, sendMessage = False, contactToTalk = None):
+    def __init__(self, jid, password, showUserList = False, addContact = None, sendMessage = False, contactToTalk = None, room = None):
         self.contactToTalk = contactToTalk
         self.contactToAdd = addContact
         slixmpp.ClientXMPP.__init__(self, jid, password)
         
+        self.room = room
+        self.nick = 'amaya'
         
         self.register_plugin('xep_0030') # Service Discovery
         self.register_plugin('xep_0004') # Data forms
@@ -21,21 +23,30 @@ class Communication(slixmpp.ClientXMPP):
         self.register_plugin('xep_0012') 
         self.register_plugin('xep_0060')  # pubsub
         self.register_plugin('xep_0199')  # xmpp ping
+        self.register_plugin('xep_0045') # group chat
 
         if (sendMessage):
+            self.add_event_handler("session_start", self.start)
             self.add_event_handler("message", self.message)
             self.add_event_handler("roster_update", self.chat_send)
+        elif (room != None):
+            self.add_event_handler('session_start', self.start_muc)
+            self.add_event_handler("groupchat_message", self.muc_message)
+            self.add_event_handler("roster_update", self.chat_send_muc)
         elif (showUserList):
             self.add_event_handler("session_start", self.getUserList)
         elif (addContact != None):
             self.add_event_handler("session_start", self.addContact)
 
-        self.add_event_handler("session_start", self.start)
 
     async def start(self, event):
         self.send_presence()
         await self.get_roster()
     
+    async def start_muc(self, event):
+        self.send_presence()
+        await self.get_roster()
+        self.plugin['xep_0045'].join_muc(self.room, self.nick)
 
     async def addContact(self, event):
         self.send_presence()
@@ -104,3 +115,25 @@ class Communication(slixmpp.ClientXMPP):
                 await self.get_roster()
         except TimeoutOccurred:
             await self.get_roster()
+
+
+    async def chat_send_muc(self, msg):
+        try:
+            something = inputimeout(prompt='>>', timeout=10)
+            self.recipient = self.room
+            self.msg = something
+            if (something == "BACK"):
+                self.room = None
+                self.disconnect()
+            else:
+                self.send_message(mto=self.recipient,
+                                mbody=self.msg,
+                                mtype='groupchat')
+                await self.get_roster()
+        except TimeoutOccurred:
+            await self.get_roster()
+
+    async def muc_message(self, msg):
+        # if msg['mucnick'] != self.nick :
+        #     print(msg['mucnick'],':', msg['body'])
+        print(msg['mucnick'],':', msg['body'])
