@@ -74,6 +74,8 @@ async def showMenu():
 
                 loggedAccount = start.isLoggedIn
             else:
+                print(' ' * 20 + 'ADIOS :)' + ' ' * 20)
+                print('*' * 50)
                 break
         else:
             if (option == 1):
@@ -132,6 +134,8 @@ async def showMenu():
                 start.process(forever=False)
                 loggedAccount = False
             else:
+                print(' ' * 20 + 'ADIOS :)' + ' ' * 20)
+                print('*' * 50)
                 break
 
 
