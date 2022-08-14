@@ -97,7 +97,9 @@ async def showMenu():
                 start.connect()
                 start.process(forever=False)
             elif (option == 4):
-                start = Communication(user, password, sendMessage=True)
+                contactToTalk = input('Usuario del contacto a mensajear: ')
+                contactToTalk += server
+                start = Communication(user, password, sendMessage=True, contactToTalk=contactToTalk)
                 # Connect to the XMPP server and start processing XMPP stanzas.
                 start.connect()
                 start.process(forever=False)

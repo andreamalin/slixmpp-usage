@@ -8,7 +8,8 @@ from slixmpp.xmlstream.handler import Callback
 from slixmpp.xmlstream.matcher import StanzaPath
 
 class Communication(slixmpp.ClientXMPP):
-    def __init__(self, jid, password, showUserList = False, addContact = None, sendMessage = False):
+    def __init__(self, jid, password, showUserList = False, addContact = None, sendMessage = False, contactToTalk = None):
+        self.contactToTalk = contactToTalk
         self.contactToAdd = addContact
         slixmpp.ClientXMPP.__init__(self, jid, password)
         
@@ -50,47 +51,39 @@ class Communication(slixmpp.ClientXMPP):
         await self.get_roster()
 
         contactsList = list(self.roster.__getitem__(self.boundjid))
-        for contact in contactsList:
-            if (self.contactToAdd != None and contact == self.contactToAdd):
-                # https://xmpp.org/extensions/xep-0012.xml
-                iq = self.make_iq(id='last1', ifrom=self.boundjid, ito=contact, itype='get')
-                iq = self.make_iq_get(queryxmlns='jabber:iq:last', iq=iq)
-                res2= await iq.send()
-                
-                posSeconds = str(res2).find("seconds")
-                seconds = str(res2)[posSeconds:]
-                posFinal = seconds.find("/")
-                seconds = seconds[:posFinal]
-                inactiveTime = int(re.findall('"([^"]*)"', seconds)[0])
 
-                if (inactiveTime == 0):
-                    print(contact, "    status: active")
-                else:
-                    print(contact, "    status: inactive")
-                self.addContact = None
-            elif (contact != self.boundjid.bare):
-                print('ENTRA ELIIIIIF', contact)
-                # https://xmpp.org/extensions/xep-0012.xml
-                iq = self.make_iq(id='last1', ifrom=self.boundjid, ito=contact, itype='get')
-                iq = self.make_iq_get(queryxmlns='jabber:iq:last', iq=iq)
-                print('ENTRA iq', iq)
-                res2= await iq.send()
-                print('ENTRA res2', res2)
-                
-                posSeconds = str(res2).find("seconds")
-                print('ENTRA posSeconds', posSeconds)
-                seconds = str(res2)[posSeconds:]
-                posFinal = seconds.find("/")
-                seconds = seconds[:posFinal]
-                inactiveTime = int(re.findall('"([^"]*)"', seconds)[0])
-
-                if (inactiveTime == 0):
-                    print(contact, "    status: active")
-                else:
-                    print(contact, "    status: inactive")
+        if (self.contactToAdd != None):
+            for contact in contactsList:
+                if contact == self.contactToAdd:
+                    await self.getUserStatus(contact)
+                    self.contactToAdd = None
+                    
+        else:
+            for contact in contactsList:
+                await self.getUserStatus(contact)
         print("----"*8)
         self.disconnect()
     
+
+    async def getUserStatus(self, contact):
+        # https://xmpp.org/extensions/xep-0012.xml
+        iq = self.make_iq(id='last1', ifrom=self.boundjid, ito=contact, itype='get')
+        iq = self.make_iq_get(queryxmlns='jabber:iq:last', iq=iq)
+
+        try:
+            res2= await iq.send()
+            posSeconds = str(res2).find("seconds")
+            seconds = str(res2)[posSeconds:]
+            posFinal = seconds.find("/")
+            seconds = seconds[:posFinal]
+            inactiveTime = int(re.findall('"([^"]*)"', seconds)[0])
+
+            if (inactiveTime == 0):
+                print(contact, "    status: active")
+            else:
+                print(contact, "    status: inactive")
+        except:
+            print(contact, 'Oops! No puedes ver la informacion de este contacto')
     
     async def message(self, msg):
         if msg['type'] in ('chat', 'normal'):
@@ -99,7 +92,7 @@ class Communication(slixmpp.ClientXMPP):
     async def chat_send(self, msg):
         try:
             something = inputimeout(prompt='>>', timeout=10)
-            self.recipient = "batouuz@alumchat.fun"
+            self.recipient = self.contactToTalk
             self.msg = something
 
             if (something == "BACK"):
