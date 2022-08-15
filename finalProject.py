@@ -13,9 +13,10 @@ muc_server = "@conference.alumchat.fun"
 
 option = 0
 
-print('*' * 50)
-print(' ' * 17 + 'BIENVENIDO :)' + ' ' * 17)
-
+'''
+initialize notifications bot w/ user and password
+-> listen to new message event until user option input
+'''
 async def initialize_bot(user, password):
     global option
     get_notifications = Communication(user, password)
@@ -23,8 +24,9 @@ async def initialize_bot(user, password):
     get_notifications.process(forever=False)
     option = int(get_notifications.option)
 
-
-
+'''
+logged in user options
+'''
 def loggedInMenu():
     print('*' * 50)
     print('1. Mostrar informacion de contactos')
@@ -38,13 +40,19 @@ def loggedInMenu():
     print('9. Salir')
     print('-' * 50)
 
+'''
+anoymous user options
+'''
 def anonymousMenu():
     print('*' * 50)
     print('1. Registrar una nueva cuenta')
     print('2. Iniciar sesion')
     print('3. Salir')
     print('-' * 50)
-    
+
+'''
+Manage user menu options
+'''
 async def showMenu():
     global option
     loggedAccount = False
@@ -94,7 +102,6 @@ async def showMenu():
                 print('*' * 50)
                 break
         else:
-            print('option ELSEEEE', option, loggedAccount)
             if (option == 1):
                 print('Informacion sobre los contactos')
                 start = Communication(user, password, showUserList = True)
@@ -160,5 +167,8 @@ async def showMenu():
 
 
 if __name__ ==  '__main__':
+    print('*' * 50)
+    print(' ' * 17 + 'BIENVENIDO :)' + ' ' * 17)
+
     loop = asyncio.get_event_loop()
     loop.run_until_complete(showMenu())
