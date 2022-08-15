@@ -1,6 +1,8 @@
 from accountFunc import *
 from communicationFunc import *
 
+from threading import Thread
+
 from getpass4 import getpass
 import asyncio
 import nest_asyncio
@@ -9,8 +11,19 @@ nest_asyncio.apply()
 server = "@alumchat.fun"
 muc_server = "@conference.alumchat.fun"
 
+option = 0
+
 print('*' * 50)
 print(' ' * 17 + 'BIENVENIDO :)' + ' ' * 17)
+
+async def initialize_bot(user, password):
+    global option
+    get_notifications = Communication(user, password)
+    get_notifications.connect()
+    get_notifications.process(forever=False)
+    option = int(get_notifications.option)
+
+
 
 def loggedInMenu():
     print('*' * 50)
@@ -33,17 +46,20 @@ def anonymousMenu():
     print('-' * 50)
     
 async def showMenu():
+    global option
     loggedAccount = False
 
     while True:
         print('*' * 50)
         if not (loggedAccount):
             anonymousMenu()
+
+            print('-' * 50)
+            option = int(input('Ingrese la opcion: '))
+            print('*' * 50)
         else:
             loggedInMenu()
-        print('-' * 50)
-        option = int(input('Ingrese la opcion: '))
-        print('*' * 50)
+            await initialize_bot(user, password)
 
         if not (loggedAccount ):
             if (option == 1):
@@ -78,6 +94,7 @@ async def showMenu():
                 print('*' * 50)
                 break
         else:
+            print('option ELSEEEE', option, loggedAccount)
             if (option == 1):
                 print('Informacion sobre los contactos')
                 start = Communication(user, password, showUserList = True)
@@ -107,7 +124,6 @@ async def showMenu():
                 start.connect()
                 start.process(forever=False)
             elif (option == 5):
-                # batouzuz
                 contactToTalk = input('Room a mensajear: ')
                 contactToTalk += muc_server
                 start = Communication(user, password, room=contactToTalk)
@@ -115,7 +131,6 @@ async def showMenu():
                 start.connect()
                 start.process(forever=False)
             elif (option == 6):
-                # batouzuz
                 status = input('Ingrese su status: ')
                 start = Communication(user, password, status=status)
                 # Connect to the XMPP server and start processing XMPP stanzas.
@@ -127,12 +142,17 @@ async def showMenu():
                 start.disconnect()
                 loggedAccount = False
             elif (option == 8):
-                # Connect to the XMPP server and start processing XMPP stanzas.
-                print('Eliminando la cuenta de ', start.boundjid, '...')
-                start = Account(user, password, remove=True)
-                start.connect()
-                start.process(forever=False)
-                loggedAccount = False
+                confirmation = input('Esta seguro de borrar la cuenta? (Y/N) ')
+
+                if (confirmation == 'Y'):
+                    # Connect to the XMPP server and start processing XMPP stanzas.
+                    print('Eliminando la cuenta de ', start.boundjid, '...')
+                    start = Account(user, password, remove=True)
+                    start.connect()
+                    start.process(forever=False)
+                    loggedAccount = False
+                else:
+                    print('Error en la confirmacion de borrado')
             else:
                 print(' ' * 20 + 'ADIOS :)' + ' ' * 20)
                 print('*' * 50)

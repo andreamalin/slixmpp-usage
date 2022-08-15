@@ -6,6 +6,10 @@ from inputimeout import inputimeout, TimeoutOccurred
 
 from slixmpp.xmlstream.handler import Callback
 from slixmpp.xmlstream.matcher import StanzaPath
+import asyncio
+asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+from aioconsole import ainput, aprint
 
 class Communication(slixmpp.ClientXMPP):
     def __init__(self, jid, password, showUserList = False, addContact = None, sendMessage = False, contactToTalk = None, room = None, status = None):
@@ -13,6 +17,7 @@ class Communication(slixmpp.ClientXMPP):
         self.contactToTalk = contactToTalk
         self.contactToAdd = addContact
         self.status = status
+        self.option = 0
         
         self.room = room
         self.nick = 'amaya'
@@ -29,15 +34,11 @@ class Communication(slixmpp.ClientXMPP):
         if (sendMessage):
             self.add_event_handler("session_start", self.start)
             self.add_event_handler("message", self.message)
-            self.add_event_handler("groupchat_message", self.group_notification)
             self.add_event_handler("roster_update", self.chat_send)
-            self.add_event_handler("changed_status", self.get_presence_notification)
         elif (room != None):
             self.add_event_handler('session_start', self.start_muc)
-            self.add_event_handler("message", self.message_notification)
             self.add_event_handler("groupchat_message", self.muc_message)
             self.add_event_handler("roster_update", self.chat_send_muc)
-            self.add_event_handler("changed_status", self.get_presence_notification)
         elif (status != None):
             self.add_event_handler("session_start", self.start_presence)
             self.add_event_handler("changed_status", self.get_presence)
@@ -45,12 +46,14 @@ class Communication(slixmpp.ClientXMPP):
             self.add_event_handler("session_start", self.getUserList)
         elif (addContact != None):
             self.add_event_handler("session_start", self.addContact)
-
+        else:
+            self.add_event_handler("session_start", self.start_notifications)
+            self.add_event_handler("message", self.message)
 
     async def start(self, event):
         self.send_presence()
         await self.get_roster()
-    
+
     async def start_muc(self, event):
         self.send_presence()
         await self.get_roster()
@@ -60,6 +63,13 @@ class Communication(slixmpp.ClientXMPP):
         self.send_presence()
         await self.update_presence()
         await self.get_roster()
+        
+    async def start_notifications(self, event):
+        self.send_presence()
+        await self.get_roster()
+
+        self.option = await ainput('Ingrese la opcion: ')
+        self.disconnect()
 
     async def addContact(self, event):
         self.send_presence()
@@ -110,61 +120,52 @@ class Communication(slixmpp.ClientXMPP):
             print(contact, 'Oops! No puedes ver la informacion de este contacto')
     
     async def message(self, msg):
-        if msg['type'] in ('chat', 'normal'):
-            print(msg['from'],':', msg['body'])
-
-    async def message_notification(self, msg):
-        if msg['type'] in ('chat', 'normal'):
-            print('*' * 50)
-            print(' ' * 15 + 'NOTIFICACION:' + ' ' * 15)
-            print(msg['from'],':', msg['body'])
-            print('*' * 50)
-    
-    async def group_notification(self, msg):
-        if msg['type'] in ('chat', 'normal'):
-            print('*' * 50)
-            print(' ' * 15 + 'NOTIFICACION:' + ' ' * 15)
-            if msg['mucnick'] != self.nick :
-                print(msg['mucnick'],':', msg['body'])
-            print('*' * 50)
+        if (self.contactToTalk == None) or not (self.contactToTalk in str(msg['from'])):
+            await aprint('\n')
+            await aprint('*' * 50)
+            await aprint(' ' * 15 + 'NOTIFICACION:' + ' ' * 15)
+            await aprint(msg['from'],':', msg['body'])
+            await aprint('*' * 50)
+        else:
+            await aprint(msg['from'],':', msg['body'])
     
     async def chat_send(self, msg):
-        try:
-            something = inputimeout(prompt='>>', timeout=10)
-            self.recipient = self.contactToTalk
-            self.msg = something
+        something = await ainput('>> ')
+        self.recipient = self.contactToTalk
+        self.msg = something
 
-            if (something == "BACK"):
-                self.disconnect()
-            else:
-                self.send_message(mto=self.recipient,
-                                mbody=self.msg,
-                                mtype='chat')
-                await self.get_roster()
-        except TimeoutOccurred:
+        if (something == "BACK"):
+            self.disconnect()
+        else:
+            self.send_message(mto=self.recipient,
+                            mbody=self.msg,
+                            mtype='chat')
             await self.get_roster()
 
 
     async def chat_send_muc(self, msg):
-        try:
-            something = inputimeout(prompt='>>', timeout=10)
-            self.recipient = self.room
-            self.msg = something
-            if (something == "BACK"):
-                self.room = None
-                self.disconnect()
-            else:
-                self.send_message(mto=self.recipient,
-                                mbody=self.msg,
-                                mtype='groupchat')
-                await self.get_roster()
-        except TimeoutOccurred:
+        something = await ainput('>> ')
+        self.recipient = self.contactToTalk
+        self.msg = something
+
+        if (something == "BACK"):
+            self.disconnect()
+        else:
+            self.send_message(mto=self.recipient,
+                            mbody=self.msg,
+                            mtype='groupchat')
             await self.get_roster()
 
+
     async def muc_message(self, msg):
-        # if msg['mucnick'] != self.nick :
-        #     print(msg['mucnick'],':', msg['body'])
-        print(msg['mucnick'],':', msg['body'])
+        if (self.room == None) or not (self.room in str(msg['from'])):
+            await aprint('\n')
+            await aprint('*' * 50)
+            await aprint(' ' * 15 + 'NOTIFICACION:' + ' ' * 15)
+            await aprint(msg['from'], '->', msg['mucnick'],':', msg['body'])
+            await aprint('*' * 50)
+        else:
+            await aprint(msg['mucnick'],':', msg['body'])
     
     
     async def update_presence(self):
@@ -173,23 +174,10 @@ class Communication(slixmpp.ClientXMPP):
 
         await resp.send()
     
-    
-    async def get_presence_notification(self, resp):
-        try:
-            print('*' * 50)
-            print(' ' * 15 + 'NOTIFICACION:' + ' ' * 15)
-            status = resp['status']
-            if (status != ''):
-                print(resp['from'], " ha actualizado el status a: ", status)
-                self.disconnect()
-            print('*' * 50)
-        except:
-            return
-    
     async def get_presence(self, resp):
         try:
             status = resp['status']
-            if (status != ''):
+            if (status != '' and (self.boundjid.user in str(resp['from']))):
                 print("Se ha actualizado el status a: ", status)
                 self.disconnect()
         except:
