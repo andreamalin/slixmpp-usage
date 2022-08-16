@@ -189,7 +189,7 @@ class Communication(slixmpp.ClientXMPP):
     '''
     async def chat_send_muc(self, msg):
         something = await ainput('>> ')
-        self.recipient = self.contactToTalk
+        self.recipient = self.room
         self.msg = something
 
         if (something == "BACK"):
